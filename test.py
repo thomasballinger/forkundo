@@ -5,7 +5,9 @@ import sys
 # read about copy-on-write for Python processes - I feel like I've heard
 # this doesn't work well
 
-DEBUG = True
+DEBUG = False
+
+print 'running with pid %r' % (os.getpid(),)
 
 
 def print_to_terminal(msg):
