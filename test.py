@@ -5,7 +5,7 @@ import sys
 # read about copy-on-write for Python processes - I feel like I've heard
 # this doesn't work well
 
-DEBUG = False
+DEBUG = True
 
 
 def print_to_terminal(msg):
