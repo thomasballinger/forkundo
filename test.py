@@ -16,7 +16,7 @@ def print_to_terminal(msg):
         sys.stderr.flush()
 
 
-def readline():
+def readline(prompt):
     """Get input from user, fork or exit
 
     readline needs function attributes:
@@ -26,7 +26,7 @@ def readline():
     print_to_terminal('pid %r initial call to readline' % (os.getpid()))
     while True:
         try:
-            s = raw_input('>>> ')
+            s = raw_input(prompt)
         except EOFError:
             readline.on_exit()
         if s == 'undo':
@@ -39,7 +39,7 @@ def readline():
         if is_child:
 
             def on_undo():
-                print_to_terminal('undoing command %r' % (source,))
+                print_to_terminal('undoing command')
                 print_to_terminal('writing line to say done on fd %r' % (write_fd,))
                 os.write(write_fd, 'done\n')
                 print_to_terminal('wrote, exiting')
@@ -66,7 +66,20 @@ def readline():
 readline.on_undo = sys.exit
 readline.on_exit = sys.exit
 
-interp = code.InteractiveInterpreter()
-while True:
-    source = readline()
-    interp.runsource(source)
+class ForkUndoConsole(code.InteractiveConsole):
+    def raw_input(self, prompt=""):
+        """Write a prompt and read a line.
+
+        The returned line does not include the trailing newline.
+        When the user enters the EOF key sequence, EOFError is raised.
+
+        The base implementation uses the built-in function
+        raw_input(); a subclass may replace this with a different
+        implementation.
+
+        """
+        return readline(prompt)
+
+
+console = ForkUndoConsole()
+console.interact()
