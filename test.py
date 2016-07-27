@@ -10,18 +10,11 @@ class ForkUndoConsole(code.InteractiveConsole):
         self.read_from_child_fd = None
         self.has_parent = False
 
-    def on_undo(self):
-        # kill process, let parent continue in raw_input loop
+    def die_and_tell_parent(self, msg):
         if self.has_parent:
-            os.write(self.write_to_parent_fd, 'done\n')
-        sys.exit()
-
-    def on_exit(self):
-        # kill process, tell parent die took
-        if self.has_parent:
-            os.write(self.write_to_parent_fd, 'exit\n')
-        else:
-            print  # print a newline when exiting top level
+            os.write(self.write_to_parent_fd, msg+'\n')
+        elif msg == 'exit':
+            print  # write a newline on top level exit
         sys.exit()
 
     def raw_input(self, prompt=""):
@@ -29,9 +22,9 @@ class ForkUndoConsole(code.InteractiveConsole):
             try:
                 s = raw_input(prompt)
             except EOFError:
-                self.on_exit()
+                self.die_and_tell_parent('exit')
             if s == 'undo':
-                self.on_undo()
+                self.die_and_tell_parent('done')
             read_fd, write_fd = os.pipe()
             pid = os.fork()
             is_child = pid == 0
@@ -46,13 +39,14 @@ class ForkUndoConsole(code.InteractiveConsole):
                 # blocking read to wait for child to die
                 from_child = os.read(self.read_from_child_fd, 1)
 
-                # e is the first letter of 'exit\n'
+                # e is the first letter of 'exit'
                 if from_child == 'e':
-                    self.on_exit()
+                    # propogate that message up
+                    self.die_and_tell_parent('exit')
 
 if __name__ == '__main__':
     console = ForkUndoConsole()
-    # self.interact() does something like
+    # console.interact() does something like
     # while True:
     #     source = self.raw_input('>>> ')
     #     self.run_source(source)
