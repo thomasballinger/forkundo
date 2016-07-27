@@ -3,52 +3,51 @@ import os
 import sys
 
 
-def readline(prompt):
-    """Get input from user then fork or exit
-
-    readline needs function attributes:
-    .on_close() which should notify parent process we're undoing
-    .on_exit() which should notify parent that we're exiting"""
-
-    while True:
-        try:
-            s = raw_input(prompt)
-        except EOFError:
-            readline.on_exit()
-        if s == 'undo':
-            readline.on_undo()
-        read_fd, write_fd = os.pipe()
-        pid = os.fork()
-        is_child = pid == 0
-
-        if is_child:
-
-            def on_undo():
-                os.write(write_fd, 'done\n')
-                sys.exit()
-
-            def on_exit():
-                os.write(write_fd, 'exit\n')
-                sys.exit()
-
-            readline.on_undo = on_undo
-            readline.on_exit = on_exit
-
-            return s
-        else:
-            from_child = os.read(read_fd, 1)
-            if from_child == 'e':
-                readline.on_exit()
-            continue
-
-readline.on_undo = sys.exit
-readline.on_exit = sys.exit
-
-
 class ForkUndoConsole(code.InteractiveConsole):
+    def __init__(self):
+        code.InteractiveConsole.__init__(self)
+        self.write_to_parent_fd = None
+        self.read_from_child_fd = None
+        self.has_parent = False
+
+    def on_undo(self):
+        if self.has_parent:
+            os.write(self.write_to_parent_fd, 'done\n')
+        sys.exit()
+
+    def on_exit(self):
+        if self.has_parent:
+            os.write(self.write_to_parent_fd, 'exit\n')
+        else:
+            print  # print newline so when exiting top level
+        sys.exit()
+
     def raw_input(self, prompt=""):
-        return readline(prompt)
+        while True:
+            try:
+                s = raw_input(prompt)
+            except EOFError:
+                self.on_exit()
+            if s == 'undo':
+                self.on_undo()
+            read_fd, write_fd = os.pipe()
+            pid = os.fork()
+            is_child = pid == 0
 
+            if is_child:
+                self.has_parent = True
+                self.write_to_parent_fd = write_fd
+                return s
+            else:
+                self.read_from_child_fd = read_fd
 
-console = ForkUndoConsole()
-console.interact()
+                # blocking read to wait for child to die
+                from_child = os.read(self.read_from_child_fd, 1)
+
+                # e is the first letter of 'exit\n'
+                if from_child == 'e':
+                    self.on_exit()
+
+if __name__ == '__main__':
+    console = ForkUndoConsole()
+    console.interact()
