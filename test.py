@@ -11,19 +11,21 @@ class ForkUndoConsole(code.InteractiveConsole):
         self.has_parent = False
 
     def on_undo(self):
+        # kill process, let parent continue in raw_input loop
         if self.has_parent:
             os.write(self.write_to_parent_fd, 'done\n')
         sys.exit()
 
     def on_exit(self):
+        # kill process, tell parent die took
         if self.has_parent:
             os.write(self.write_to_parent_fd, 'exit\n')
         else:
-            print  # print newline so when exiting top level
+            print  # print a newline when exiting top level
         sys.exit()
 
     def raw_input(self, prompt=""):
-        while True:
+        while True:  # each time through this loop is another
             try:
                 s = raw_input(prompt)
             except EOFError:
@@ -50,4 +52,9 @@ class ForkUndoConsole(code.InteractiveConsole):
 
 if __name__ == '__main__':
     console = ForkUndoConsole()
+    # self.interact() does something like
+    # while True:
+    #     source = self.raw_input('>>> ')
+    #     self.run_source(source)
+    # but works with multiline input
     console.interact()
