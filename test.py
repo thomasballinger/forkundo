@@ -4,11 +4,11 @@ import sys
 
 
 def readline(prompt):
-    """Get input from user, fork or exit
+    """Get input from user then fork or exit
 
     readline needs function attributes:
-    .on_close() should notify parent process we're undoing
-    .on_exit() should notify parent that we're exiting"""
+    .on_close() which should notify parent process we're undoing
+    .on_exit() which should notify parent that we're exiting"""
 
     while True:
         try:
