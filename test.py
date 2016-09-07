@@ -1,6 +1,4 @@
-import code
-import os
-import sys
+import code, os, sys
 
 write_to_parent_fd = None
 
@@ -20,9 +18,7 @@ def read_line(prompt=""):
             write_to_parent_fd = write_fd
             return s
 
-
-if __name__ == '__main__':
-    console = code.InteractiveConsole()
-    while True:
-        src = read_line('>>> ')
-        console.runsource(src)
+console = code.InteractiveConsole()
+while True:
+    src = read_line('>>> ')
+    console.runsource(src)
