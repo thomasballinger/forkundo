@@ -8,7 +8,6 @@ class ForkUndoConsole(code.InteractiveConsole):
         code.InteractiveConsole.__init__(self)
         self.write_to_parent_fd = None
         self.read_from_child_fd = None
-        self.has_parent = False
 
     def raw_input(self, prompt=""):
         while True:  # each time through this loop is another
@@ -25,20 +24,13 @@ class ForkUndoConsole(code.InteractiveConsole):
             is_child = pid == 0
 
             if is_child:
-                self.has_parent = True
                 self.write_to_parent_fd = write_fd
                 return s
             else:
                 self.read_from_child_fd = read_fd
 
                 # blocking read to wait for child to die
-                from_child = os.read(self.read_from_child_fd, 1)
-
-                # e is the first letter of 'exit'
-                if from_child == 'e':
-                    # propogate that message up
-                    os.write(self.write_to_parent_fd, b'exit\n')
-                    sys.exit()
+                os.read(self.read_from_child_fd, 1)
 
 
 if __name__ == '__main__':
