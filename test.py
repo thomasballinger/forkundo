@@ -3,10 +3,6 @@ import os
 import sys
 
 
-if sys.version_info[0] == 2:
-    input = raw_input
-
-
 class ForkUndoConsole(code.InteractiveConsole):
     def __init__(self):
         code.InteractiveConsole.__init__(self)
@@ -14,21 +10,16 @@ class ForkUndoConsole(code.InteractiveConsole):
         self.read_from_child_fd = None
         self.has_parent = False
 
-    def die_and_tell_parent(self, msg):
-        if self.has_parent:
-            os.write(self.write_to_parent_fd, msg+'\n')
-        elif msg == 'exit':
-            print  # write a newline on top level exit
-        sys.exit()
-
     def raw_input(self, prompt=""):
         while True:  # each time through this loop is another
             try:
                 s = input(prompt)
             except EOFError:
-                self.die_and_tell_parent(b'exit')
+                os.write(self.write_to_parent_fd, b'exit\n')
+                sys.exit()
             if s == 'undo':
-                self.die_and_tell_parent(b'done')
+                os.write(self.write_to_parent_fd, b'done\n')
+                sys.exit()
             read_fd, write_fd = os.pipe()
             pid = os.fork()
             is_child = pid == 0
@@ -46,7 +37,8 @@ class ForkUndoConsole(code.InteractiveConsole):
                 # e is the first letter of 'exit'
                 if from_child == 'e':
                     # propogate that message up
-                    self.die_and_tell_parent(b'exit')
+                    os.write(self.write_to_parent_fd, b'exit\n')
+                    sys.exit()
 
 
 if __name__ == '__main__':
