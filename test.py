@@ -11,26 +11,20 @@ class ForkUndoConsole(code.InteractiveConsole):
 
     def raw_input(self, prompt=""):
         while True:  # each time through this loop is another
-            try:
-                s = input(prompt)
-            except EOFError:
-                os.write(self.write_to_parent_fd, b'exit\n')
-                sys.exit()
+            s = input(prompt)
             if s == 'undo':
                 os.write(self.write_to_parent_fd, b'done\n')
                 sys.exit()
             read_fd, write_fd = os.pipe()
-            pid = os.fork()
-            is_child = pid == 0
 
-            if is_child:
-                self.write_to_parent_fd = write_fd
-                return s
-            else:
+            if os.fork():
                 self.read_from_child_fd = read_fd
 
                 # blocking read to wait for child to die
                 os.read(self.read_from_child_fd, 1)
+            else:
+                self.write_to_parent_fd = write_fd
+                return s
 
 
 if __name__ == '__main__':
