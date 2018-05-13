@@ -16,7 +16,7 @@ class ForkUndoConsole(code.InteractiveConsole):
 
     def die_and_tell_parent(self, msg):
         if self.has_parent:
-            os.write(self.write_to_parent_fd, msg+'\n')
+            os.write(self.write_to_parent_fd, msg+b'\n')
         elif msg == 'exit':
             print  # write a newline on top level exit
         sys.exit()
